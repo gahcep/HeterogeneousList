@@ -7,7 +7,7 @@
 #include "../src/hadt_list.hpp"
 #include "../src/hadt_forward_list.hpp"
 
-#include "../modules/single_include/catch.hpp"
+#include "../modules/catch/single_include/catch.hpp"
 
 using hadt::list;
 using hadt::forward_list;
