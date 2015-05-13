@@ -24,10 +24,11 @@
 namespace hadt {
 
 	template <class T>
-	class list : forward_list<T>
+	class list : public forward_list<T>
 	{
 		/* Internal class : [Const] Iterator */
 
+		// Differs from the list_iterator in forward_list class
 		template <bool IsConst = false>
 		class list_iterator : public std::iterator <std::bidirectional_iterator_tag, T>
 		{
@@ -112,6 +113,8 @@ namespace hadt {
 			// HNode * / const HNode *
 			typename iterator_base_type<IsConst>::iterator_value_type_ptr ptr_;
 		};
+
+		/* Internal class : Reverse [Const] Iterator */
 
 		template <bool IsConst = false>
 		class list_reverse_iterator : public std::iterator<std::bidirectional_iterator_tag, T>
@@ -201,11 +204,8 @@ namespace hadt {
 			typename iterator_base_type<IsConst>::iterator_value_type_ptr ptr_;
 		};
 
-		HNode *head, *rhead, *tail, *rtail;
-		HNode *tail_junk;
+		HNode *rhead, *rtail;
 		HNode *rtail_junk;
-
-		size_t size_;
 
 	public:
 
@@ -217,14 +217,11 @@ namespace hadt {
 		typedef list_reverse_iterator<true> const_reverse_iterator;
 
 		list() :
-			head{ nullptr },
 			rhead{ nullptr },
-			tail{ nullptr },
 			rtail{ nullptr },
-			tail_junk{ nullptr },
 			rtail_junk{ nullptr } {};
 
-		//~list() throw() { clear(); }
+		~list() throw() { clear(); }
 
 		// copy ctor; move ctor; copy assign; move assign
 		list(const list& node) = delete;
@@ -235,84 +232,29 @@ namespace hadt {
 		iterator begin() const { return iterator(head); }
 		iterator end() const { return iterator(tail_junk); }
 
-		const_iterator cbegin() { return const_iterator(head); }
-		const_iterator cend() { return const_iterator(tail_junk); }
+		const_iterator cbegin() const { return const_iterator(head); }
+		const_iterator cend() const { return const_iterator(tail_junk); }
 
-		reverse_iterator rbegin() { return reverse_iterator(rhead); }
-		reverse_iterator rend() { return reverse_iterator(rtail_junk); }
+		reverse_iterator rbegin() const { return reverse_iterator(rhead); }
+		reverse_iterator rend() const { return reverse_iterator(rtail_junk); }
 
-		const_reverse_iterator rcbegin() { return const_reverse_iterator(rhead); }
-		const_reverse_iterator rcend() { return const_reverse_iterator(rtail_junk); }
-
-		// Insert at front
-		auto push_front(const T& data) throw() -> void;
-		auto move_front(T&& data) throw() -> void;
-
-		// Insert at back
-		auto push_back(const T& data) throw() -> void;
-		auto move_back(T&& data) throw() -> void;
-
-		// Pop(remove) from the list
-		auto pop_front() throw(std::length_error, std::out_of_range)->T;
-		auto pop_back() throw(std::length_error, std::out_of_range)->T;
-		auto pop_at(size_t idx) throw(std::length_error, std::out_of_range)->T;
-
-		// Populate the list
-		auto fill_with(std::initializer_list<T> init_list) -> void;
-
-		template <class Iter, class Enable = std::enable_if<
-			(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
-			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
-			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
-			std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-		>::type>
-		//TODO: CANNOT DEDUCE TEMPLATE ARGUMENT FOR "ENABLE"
-		/*template <class Iter, class Enable = std::enable_if<
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::input_iterator_tag>::value &&
-		std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-		>::type>*/
-		auto fill_with(const Iter& _begin, const Iter& _end) -> void;
-
-		// Append / Prepend the list
-		auto append_with(std::initializer_list<T> append_list) -> void;
-		auto prepend_with(std::initializer_list<T> prepend_list) -> void;
-
-		template <class Iter, class Enable = std::enable_if<
-			(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
-			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
-			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
-			std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-		>::type>
-		auto append_with(const Iter& _begin, const Iter& _end) -> void;
-
-		template <class Iter, class Enable = std::enable_if<
-			(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
-			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
-			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
-			std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-		>::type>
-		auto prepend_with(const Iter& _begin, const Iter& _end) -> void;
+		const_reverse_iterator rcbegin() const { return const_reverse_iterator(rhead); }
+		const_reverse_iterator rcend() const { return const_reverse_iterator(rtail_junk); }
 
 		// Find by value/by index
-		auto find_first(T value) const -> iterator;
+		// Differs from the function in forward_list<T>
+		// O(idx)
 		auto find_nth_to_last(size_t idx) const throw(std::out_of_range) -> iterator;
 
-		// Look at item in idx position 
-		auto at(size_t idx) throw(std::out_of_range) -> T;
-		auto at_front() throw(std::out_of_range) -> T;
-		auto at_back() throw(std::out_of_range) -> T;
-
 		// Reverse the list
-		virtual auto reverse_inplace() -> void;
-		virtual auto reverse(list<T>& ref) -> void;
+		auto reverse_inplace() -> void override;
+		auto reverse(list<T>& ref) -> void;
 
 		// Service functions
-		inline auto size() const -> size_t { return size_; };
 		inline auto empty() -> bool { return begin() == end(); };
 
 		// Print list
-		auto print(std::ostream& ostream = std::cout) const -> std::ostream&;
-		virtual auto print_reverse(std::ostream& ostream = std::cout) -> std::ostream&;
+		auto print_reverse(std::ostream& ostream = std::cout)->std::ostream& override;
 
 		// Clear container
 		virtual auto clear() throw() -> void;
@@ -320,11 +262,11 @@ namespace hadt {
 	private:
 
 		// Insert HNode at front or back
-		virtual auto _push_front(T&& data) throw() -> void;
-		virtual auto _push_back(T&& data) throw() -> void;
+		auto _push_front(T&& data) throw() -> void override;
+		auto _push_back(T&& data) throw() -> void override;
 
 		// Remove HNode at given position
-		virtual auto _remove_at(size_t idx) throw(std::out_of_range) -> T;
+		auto _remove_at(size_t idx) throw(std::out_of_range) -> T override;
 
 		// Return HNode at given position
 		auto _node_at(size_t idx) throw(std::out_of_range) -> HNode*;
@@ -368,20 +310,6 @@ namespace hadt {
 	}
 
 	template <class T>
-	auto list<T>::push_front(const T& data) throw() -> void
-	{
-		_push_front(std::move(T{ data }));
-		size_++;
-	}
-
-	template <class T>
-	auto list<T>::move_front(T&& data) throw() -> void
-	{
-		_push_front(std::move(data));
-		size_++;
-	}
-
-	template <class T>
 	auto list<T>::_push_back(T&& data) throw() -> void
 	{
 		HNode *node = new HNode(std::move(data));
@@ -418,84 +346,6 @@ namespace hadt {
 	}
 
 	template <class T>
-	auto list<T>::push_back(const T& data) throw() -> void
-	{
-		_push_back(std::move(T{ data }));
-		size_++;
-	}
-
-	template <class T>
-	auto list<T>::move_back(T&& data) throw() -> void
-	{
-		_push_back(std::move(data));
-		size_++;
-	}
-
-	template <class T>
-	auto list<T>::fill_with(std::initializer_list<T> init_list) -> void
-	{
-		clear();
-
-		append_with(init_list);
-	}
-
-	template <class T>
-	auto list<T>::append_with(std::initializer_list<T> append_list) -> void
-	{
-		for (auto &x : append_list)
-			push_back(x);
-	}
-
-	template <class T>
-	auto list<T>::prepend_with(std::initializer_list<T> prepend_list) -> void
-	{
-		for (auto &x : prepend_list)
-			push_front(x);
-	}
-
-	template <class T>
-	template <class Iter, class Enable = std::enable_if<
-		(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
-		std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-	>::type>
-	auto list<T>::fill_with(const Iter& _begin, const Iter& _end) -> void
-	{
-		clear();
-
-		append_with(_begin, _end);
-	}
-
-	template <class T>
-	template <class Iter, class Enable = std::enable_if<
-		(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
-		std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-	>::type>
-	auto list<T>::append_with(const Iter& _begin, const Iter& _end) -> void
-	{
-		auto it = _begin;
-		while (it != _end)
-			push_back(*it++);
-	}
-
-	template <class T>
-	template <class Iter, class Enable = std::enable_if<
-		(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
-		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
-		std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
-	>::type>
-	auto list<T>::prepend_with(const Iter& _begin, const Iter& _end) -> void
-	{
-		auto it = _begin;
-		while (it != _end)
-			push_front(*it++);
-	}
-
-	template <class T>
 	auto list<T>::_node_at(size_t idx) throw(std::out_of_range) -> HNode*
 	{
 		if (idx >= size())
@@ -512,33 +362,12 @@ namespace hadt {
 	template <class T>
 	auto list<T>::clear() throw() -> void
 	{
-		HNode *tmp = head;
-		HNode *it = head;
+		forward_list<T>::clear();
 
-		try
-		{
-			while (tmp != tail_junk)
-			{
-				tmp = it->next;
-				delete it;
-				it = tmp;
-			}
+		if (nullptr != rtail_junk)
+			delete rtail_junk;
 
-			if (nullptr != tail_junk)
-				delete tail_junk;
-
-			head = tail = tail_junk = nullptr;
-
-			if (nullptr != rtail_junk)
-				delete rtail_junk;
-			rhead = rtail = rtail_junk = nullptr;
-
-			size_ = 0;
-		}
-		catch (...)
-		{
-			terminate();
-		}
+		rhead = rtail = rtail_junk = nullptr;
 	}
 
 	template <class T>
@@ -584,13 +413,10 @@ namespace hadt {
 			else
 			{
 				HNode * tmp = tail;
-
-				// O(n)
-				//TODO: use reverse iterator once it implemented (O(1))
 				HNode * prev = _node_at(size() - 2);
+
 				prev->next = tail_junk;
 				tail = prev;
-
 				rhead = tail;
 
 				delete tmp;
@@ -620,102 +446,20 @@ namespace hadt {
 	}
 
 	template <class T>
-	auto list<T>::pop_front() throw(std::length_error, std::out_of_range) -> T
-	{
-		if (empty())
-			throw std::length_error("list is empty");
-
-		return _remove_at(0);
-	}
-
-	template <class T>
-	auto list<T>::pop_back() throw(std::length_error, std::out_of_range) -> T
-	{
-		if (empty())
-			throw std::length_error("list is empty");
-
-		return _remove_at(size() - 1);
-	}
-
-	template <class T>
-	auto list<T>::pop_at(size_t idx) throw(std::length_error, std::out_of_range) -> T
-	{
-		if (empty())
-			throw std::length_error("list is empty");
-
-		return _remove_at(idx);
-	}
-
-	template <class T>
-	auto list<T>::at(size_t idx) throw(std::out_of_range) -> T
-	{
-		if (idx >= size())
-			throw std::out_of_range("at()");
-
-		size_t cnt{};
-
-		auto it = begin();
-		while (idx != 0 && it++ != end() && ++cnt != idx);
-
-		return *it;
-	}
-
-	template <class T>
-	auto list<T>::at_front() throw(std::out_of_range) -> T
-	{
-		return at(0);
-	}
-
-	template <class T>
-	auto list<T>::at_back() throw(std::out_of_range) -> T
-	{
-		return at(size() - 1);
-	}
-
-	template <class T>
-	auto list<T>::find_first(T value) const -> iterator
-	{
-		auto it = begin();
-
-		while (*it != value && ++it != end());
-
-		return it;
-	}
-
-	template <class T>
 	auto list<T>::find_nth_to_last(size_t idx) const throw(std::out_of_range) -> iterator
 	{
 		if (idx >= size())
 			throw std::out_of_range("at()");
 
-		auto it_range_end = ++begin();
-		auto it_range_begin = begin();
-
-		while (it_range_end != end())
+		// Effective search using reverse_iterator
+		auto it = rbegin();
+		while (idx > 0)
 		{
-			it_range_end++;
-
-			if (idx == 0)
-				it_range_begin++;
-			else
-				idx--;
+			it++;
+			idx--;
 		}
 
-		return it_range_begin;
-	}
-
-	template <class T>
-	auto list<T>::print(std::ostream& ostream = std::cout) const -> std::ostream&
-	{
-		if (size() == 0) return ostream;
-
-		auto it = begin();
-
-		ostream << *it++;
-		while (it != end())
-			ostream << "," << *it++;
-
-		return ostream;
+		return iterator(it.get_node());
 	}
 
 	template <class T>
@@ -723,25 +467,13 @@ namespace hadt {
 	{
 		if (size() == 0) return ostream;
 
-		// TODO: replace with reverse iterator once it's ready
-		/*
 		auto it = rbegin();
 
+		ostream << *it++;
 		while (it != rend())
-		ostream << *it++ << ",";
-
-		ostream << std::endl;
-
-		return ostream;
-		*/
-		HNode *it = rhead;
-
-		ostream << it->data;
-		it = it->prev;
-		while (it != rtail_junk)
 		{
-			ostream << "," << it->data;
-			it = it->prev;
+			ostream << "," << *it;
+			it++;
 		}
 
 		return ostream;
@@ -752,16 +484,11 @@ namespace hadt {
 	{
 		if (empty()) return;
 
-		//TODO: replace by iterators: iterator & reverse_iterator
-		HNode * it_beg = head;
-		HNode * it_end = tail;
+		auto it_beg = begin();
+		auto it_end = rbegin();
 
-		while (it_beg != it_end)
-		{
-			std::swap(it_beg->data, it_end->data);
-			it_beg = it_beg->next;
-			it_end = it_end->prev;
-		}
+		while (it_beg.get_node() != it_end.get_node())
+			std::swap(*it_beg++, *it_end++);
 	}
 
 	template <class T>
@@ -771,7 +498,7 @@ namespace hadt {
 
 		if (empty()) return;
 
-		list::reverse_iterator it = rbegin();
+		auto it = rbegin();
 		while (it != rend())
 		{
 			ref.push_back(*it);

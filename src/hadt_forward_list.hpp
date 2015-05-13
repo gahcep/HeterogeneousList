@@ -48,8 +48,6 @@ namespace hadt {
 			HNode& operator=(HNode&& node) = delete;
 		};
 
-	private:
-
 		/* Internal class : [Const] Iterator */
 
 		template <bool IsConst = false>
@@ -153,8 +151,8 @@ namespace hadt {
 		iterator begin() const { return iterator(head); }
 		iterator end() const { return iterator(tail_junk); }
 
-		const_iterator cbegin() { return const_iterator(head); }
-		const_iterator cend() { return const_iterator(tail_junk); }
+		const_iterator cbegin() const { return const_iterator(head); }
+		const_iterator cend() const { return const_iterator(tail_junk); }
 
 		// Insert at front
 		auto push_front(const T& data) throw() -> void;
@@ -206,7 +204,9 @@ namespace hadt {
 		auto prepend_with(const Iter& _begin, const Iter& _end) -> void;
 
 		// Find by value/by index
+		// O(n)
 		auto find_first(T value) const -> iterator;
+		// O(size() - idx)
 		auto find_nth_to_last(size_t idx) const throw(std::out_of_range) -> iterator;
 
 		// Look at item in idx position 
@@ -216,7 +216,7 @@ namespace hadt {
 
 		// Reverse the list
 		virtual auto reverse_inplace() -> void;
-		virtual auto reverse(forward_list<T>& ref) -> void;
+		auto reverse(forward_list<T>& ref) -> void;
 
 		// Service functions
 		inline auto size() const -> size_t { return size_; };

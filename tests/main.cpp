@@ -116,45 +116,45 @@ TEST_CASE("push_front & Iterators", "[Methods][Iterators]")
 
 	SECTION("... for doubly-linked list")
 	{
-		list<int> slist;
+		list<int> dlist;
 
-		slist.push_front(10);
-		slist.push_front(100);
-		slist.push_front(1000);
+		dlist.push_front(10);
+		dlist.push_front(100);
+		dlist.push_front(1000);
 
-		REQUIRE(slist.empty() == false);
+		REQUIRE(dlist.empty() == false);
 
 		// Iterator
-		auto hlist_it = slist.begin();
+		auto slist_it = dlist.begin();
 
-		REQUIRE(*hlist_it++ == 1000);
-		REQUIRE(*hlist_it++ == 100);
-		REQUIRE(*hlist_it++ == 10);
-		REQUIRE(hlist_it++ == slist.end());
+		REQUIRE(*slist_it++ == 1000);
+		REQUIRE(*slist_it++ == 100);
+		REQUIRE(*slist_it++ == 10);
+		REQUIRE(slist_it++ == dlist.end());
 
 		// Const Iterator
-		auto slist_const_it = slist.cbegin();
+		auto dlist_const_it = dlist.cbegin();
 
-		REQUIRE(*slist_const_it++ == 1000);
-		REQUIRE(*slist_const_it++ == 100);
-		REQUIRE(*slist_const_it++ == 10);
-		REQUIRE(slist_const_it++ == slist.cend());
+		REQUIRE(*dlist_const_it++ == 1000);
+		REQUIRE(*dlist_const_it++ == 100);
+		REQUIRE(*dlist_const_it++ == 10);
+		REQUIRE(dlist_const_it++ == dlist.cend());
 
 		// Reverse Iterator
-		auto slist_rev_it = slist.rbegin();
+		auto dlist_rev_it = dlist.rbegin();
 
-		REQUIRE(*slist_rev_it++ == 10);
-		REQUIRE(*slist_rev_it++ == 100);
-		REQUIRE(*slist_rev_it++ == 1000);
-		REQUIRE(slist_rev_it++ == slist.rend());
+		REQUIRE(*dlist_rev_it++ == 10);
+		REQUIRE(*dlist_rev_it++ == 100);
+		REQUIRE(*dlist_rev_it++ == 1000);
+		REQUIRE(dlist_rev_it++ == dlist.rend());
 
 		// Const Reverse Iterator
-		auto slist_crev_it = slist.rcbegin();
+		auto dlist_crev_it = dlist.rcbegin();
 
-		REQUIRE(*slist_crev_it++ == 10);
-		REQUIRE(*slist_crev_it++ == 100);
-		REQUIRE(*slist_crev_it++ == 1000);
-		REQUIRE(slist_crev_it++ == slist.rcend());
+		REQUIRE(*dlist_crev_it++ == 10);
+		REQUIRE(*dlist_crev_it++ == 100);
+		REQUIRE(*dlist_crev_it++ == 1000);
+		REQUIRE(dlist_crev_it++ == dlist.rcend());
 	}
 }
 
@@ -452,20 +452,29 @@ TEST_CASE("List Search", "[Search][Iterator]")
 
 TEST_CASE("Search M-to-Last", "[Methods][Search]")
 {
+	list<int> dlist;
 	forward_list<int> slist;
 
 	slist.fill_with({ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 });
+	dlist.fill_with({ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170 });
 
-	auto it_1 = slist.find_nth_to_last(0);
-	REQUIRE(*it_1 == 17);
+	auto s_it_1 = slist.find_nth_to_last(0);
+	auto d_it_1 = dlist.find_nth_to_last(0);
+	REQUIRE(*s_it_1 == 17);
+	REQUIRE(*d_it_1 == 170);
 
-	auto it_2 = slist.find_nth_to_last(slist.size() - 1);
-	REQUIRE(*it_2 == 1);
+	auto s_it_2 = slist.find_nth_to_last(slist.size() - 1);
+	auto d_it_2 = dlist.find_nth_to_last(dlist.size() - 1);
+	REQUIRE(*s_it_2 == 1);
+	REQUIRE(*d_it_2 == 10);
 
-	auto it_3 = slist.find_nth_to_last(5);
-	REQUIRE(*it_3 == 12);
+	auto s_it_3 = slist.find_nth_to_last(5);
+	auto d_it_3 = dlist.find_nth_to_last(5);
+	REQUIRE(*s_it_3 == 12);
+	REQUIRE(*d_it_3 == 120);
 
 	REQUIRE_THROWS_AS(slist.find_nth_to_last(100), std::out_of_range);
+	REQUIRE_THROWS_AS(dlist.find_nth_to_last(100), std::out_of_range);
 }
 
 TEST_CASE("Reversing items on singly-linked list", "[Methods][Reverse]")
