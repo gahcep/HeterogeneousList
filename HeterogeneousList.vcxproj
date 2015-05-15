@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="modules\philsquared\catch.hpp" />
     <ClInclude Include="src\hadt_forward_list.hpp" />
+    <ClInclude Include="src\hadt_graph_list.hpp" />
     <ClInclude Include="src\hadt_list.hpp" />
   </ItemGroup>
   <ItemGroup>
