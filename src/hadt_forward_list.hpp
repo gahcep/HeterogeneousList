@@ -31,14 +31,13 @@ namespace hadt {
 
 		class HNode
 		{
-
 		public:
 			T data;
 
 			HNode *next;
 			HNode *prev;
 
-			HNode(T d) : next{ nullptr }, prev{ nullptr } { data = d; };
+			explicit HNode(T d) :next{ nullptr }, prev{ nullptr } { data = d; };
 			HNode(T d, HNode *n, HNode *p) : next{ n }, prev{ p } { data = d; };
 
 			// copy ctor; move ctor; copy assign; move assign
@@ -144,9 +143,9 @@ namespace hadt {
 
 		// copy ctor; move ctor; copy assign; move assign
 		forward_list(const forward_list& node) = delete;
-		forward_list<T>& operator=(const forward_list<T>& node) = delete;
+		forward_list& operator=(const forward_list& node) = delete;
 		forward_list(forward_list&& node) = delete;
-		forward_list<T>& operator=(forward_list<T>&& node) = delete;
+		forward_list& operator=(forward_list&& node) = delete;
 
 		iterator begin() const { return iterator(head); }
 		iterator end() const { return iterator(tail_junk); }
