@@ -242,6 +242,8 @@ namespace hadt {
 		const_reverse_iterator rcend() const { return const_reverse_iterator(rtail_junk); }
 
 		// Find by value/by index
+		// O(n)
+		auto find_first(T value) const -> iterator;
 		// Differs from the function in forward_list<T>
 		// O(idx)
 		auto find_nth_to_last(size_t idx) const throw(std::out_of_range) -> iterator;
@@ -443,6 +445,16 @@ namespace hadt {
 		}
 
 		return val;
+	}
+
+	template <class T>
+	auto list<T>::find_first(T value) const -> iterator
+	{
+		auto it = begin();
+
+		while (*it != value && ++it != end());
+
+		return it;
 	}
 
 	template <class T>
