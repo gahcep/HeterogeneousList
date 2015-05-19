@@ -18,8 +18,23 @@
 // std::initializer_list
 #include <initializer_list>
 
+// std::function
+#include <functional>
+
+// std::stack
+#include <deque>
+
+// std::tuple, std::get
+#include <tuple>
 
 namespace hadt {
+
+	/* Helper functions */
+	template <class T, class W>
+	static auto make_edge(W a1, T a2, T a3) -> std::tuple<W, T, T> 
+	{ 
+		return std::make_tuple(a1, a2, a3); 
+	};
 
 	/* External class : Vertex Data */
 
@@ -36,9 +51,14 @@ namespace hadt {
 		EdgeNode<T, W> *edge_head;
 
 		explicit VertexNode(T d)
-			: data{ d }, is_visited{ false }, next{ nullptr }, edge_head{ nullptr } {};
+			: is_visited{ false }, next{ nullptr }, edge_head{ nullptr } 
+		{
+			data = d;
+		};
 		VertexNode(T d, bool vis, VertexNode* vn, EdgeNode<T, W>* en)
-			: data{ d }, is_visited{ vis }, next{ vn }, edge_head{ en } {};
+			: is_visited{ vis }, next{ vn }, edge_head{ en } {
+			data = d;
+		};
 	};
 
 	/* External class : Edge Data */
@@ -57,10 +77,53 @@ namespace hadt {
 			: weight{ w }, connects_to{ vn }, next{ en } {};
 	};
 
+	/* Vertex & Edge Iterators */
+
+	template <class T, class W, bool is_const>
+	struct vertex_iterator_base {};
+
+	template <class T, class W, bool is_const>
+	struct edge_iterator_base {};
+
+	// Specialization for iterator
+	template <class T, class W>
+	struct vertex_iterator_base<T, W, false>
+	{
+		typedef T& iterator_reference;
+		typedef T* iterator_pointer;
+		typedef VertexNode<T, W>* iterator_value_type_ptr;
+	};
+
+	// Specialization for const_iterator
+	template <class T, class W>
+	struct vertex_iterator_base<T, W, true>
+	{
+		typedef const T& iterator_reference;
+		typedef const T* iterator_pointer;
+		typedef const VertexNode<T, W>* iterator_value_type_ptr;
+	};
+
+	// Specialization for iterator
+	template <class T, class W>
+	struct edge_iterator_base<T, W, false>
+	{
+		typedef W& iterator_reference;
+		typedef W* iterator_pointer;
+		typedef EdgeNode<T, W>* iterator_value_type_ptr;
+	};
+
+	// Specialization for const_iterator
+	template <class T, class W>
+	struct edge_iterator_base<T, W, true>
+	{
+		typedef const W& iterator_reference;
+		typedef const W* iterator_pointer;
+		typedef const EdgeNode<T, W>* iterator_value_type_ptr;
+	};
+
 	template <class T, class W>
 	class graph_list
 	{
-
 	protected:
 
 		/* Internal class : [Const] Vertex Iterator */
@@ -68,6 +131,12 @@ namespace hadt {
 		template <bool IsConst = false>
 		class list_vertex_iterator : public std::iterator <std::forward_iterator_tag, T>
 		{
+			// Works in VC++, but not in GCC, due to
+			// "Explicit specialization in non-namespace scope" error
+			// Read more at http://stackoverflow.com/questions/3052579/explicit-specialization-in-non-namespace-scope
+
+			/* ----
+			
 			template <bool is_const>
 			struct iterator_base_type {};
 
@@ -89,13 +158,15 @@ namespace hadt {
 				typedef const VertexNode<T, W>* iterator_value_type_ptr;
 			};
 
+			---- */
+
 		public:
 
 			typedef T value_type;
 			// T& / const T&
-			typedef typename iterator_base_type<IsConst>::iterator_reference reference;
+			typedef typename hadt::vertex_iterator_base<T, W, IsConst>::iterator_reference reference;
 			// T* / const T*
-			typedef typename iterator_base_type<IsConst>::iterator_pointer pointer;
+			typedef typename hadt::vertex_iterator_base<T, W, IsConst>::iterator_pointer pointer;
 			typedef std::ptrdiff_t difference_type;
 
 			typedef std::forward_iterator_tag iterator_category;
@@ -134,7 +205,7 @@ namespace hadt {
 		private:
 
 			// HNode * / const HNode *
-			typename iterator_base_type<IsConst>::iterator_value_type_ptr ptr_;
+			typename hadt::vertex_iterator_base<T, W, IsConst>::iterator_value_type_ptr ptr_;
 		};
 
 		/* Internal class : [Const] Edge Iterator */
@@ -142,34 +213,13 @@ namespace hadt {
 		template <bool IsConst = false>
 		class list_edge_iterator : public std::iterator <std::forward_iterator_tag, W>
 		{
-			template <bool is_const>
-			struct iterator_base_type {};
-
-			// Specialization for iterator
-			template <>
-			struct iterator_base_type<false>
-			{
-				typedef W& iterator_reference;
-				typedef W* iterator_pointer;
-				typedef EdgeNode<T, W>* iterator_value_type_ptr;
-			};
-
-			// Specialization for const_iterator
-			template <>
-			struct iterator_base_type<true>
-			{
-				typedef const W& iterator_reference;
-				typedef const W* iterator_pointer;
-				typedef const EdgeNode<T, W>* iterator_value_type_ptr;
-			};
-
 		public:
 
 			typedef T value_type;
 			// T& / const T&
-			typedef typename iterator_base_type<IsConst>::iterator_reference reference;
+			typedef typename hadt::edge_iterator_base<T, W, IsConst>::iterator_reference reference;
 			// T* / const T*
-			typedef typename iterator_base_type<IsConst>::iterator_pointer pointer;
+			typedef typename hadt::edge_iterator_base<T, W, IsConst>::iterator_pointer pointer;
 			typedef std::ptrdiff_t difference_type;
 
 			typedef std::forward_iterator_tag iterator_category;
@@ -208,7 +258,7 @@ namespace hadt {
 		private:
 
 			// HNode * / const HNode *
-			typename iterator_base_type<IsConst>::iterator_value_type_ptr ptr_;
+			typename hadt::edge_iterator_base<T, W, IsConst>::iterator_value_type_ptr ptr_;
 		};
 
 		VertexNode<T, W> *head, *tail;
@@ -248,9 +298,13 @@ namespace hadt {
 		const_edge_iterator edge_cend() const { return const_edge_iterator(edge_tail_junk); }
 
 		// Add nodes
-		auto add_vertex(T data) -> VertexNode<T, W>*;
-		auto add_edge(W weight, VertexNode<T, W>* from, VertexNode<T, W>* to) -> void;
+		auto add_vertex(T vertex_data) -> VertexNode<T, W>*;
+		auto add_vertices(std::initializer_list<T> vertices) -> void;
 
+		auto add_edge(W weight, VertexNode<T, W>* const from, VertexNode<T, W>* const to) -> void;
+		auto add_edge(W weight, T from, T to) throw(std::invalid_argument) -> void;
+		auto add_edges(std::initializer_list<std::tuple<W, T, T>> edges) throw(std::invalid_argument) -> void;
+		
 		// Remove nodes
 		// O(V * E)
 		auto remove_vertex(VertexNode<T, W>* node) throw(std::invalid_argument) -> void;
@@ -258,30 +312,72 @@ namespace hadt {
 		auto remove_egde(VertexNode<T, W>* from, VertexNode<T, W>* to) throw(std::invalid_argument) -> void;
 
 		// Populate vertex nodes
-		auto fill_vertex_with(std::initializer_list<T> values) -> void;
+		auto fill_vertices(std::initializer_list<T> values) -> void;
 
-		template <class Iter, class Enable = std::enable_if<
+		template <class Iter, class Enable = typename std::enable_if<
 			(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
 			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
 			std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
 			std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
 		>::type>
-		auto fill_vertex_with(const Iter& _begin, const Iter& _end) -> void;
+		auto fill_vertices(const Iter& _begin, const Iter& _end) -> void;
 
-		// Service functions
+		// Graph Traversal
+		auto bfs_vertex_map(std::function<void(T&)> map_func) -> void; // Breadth-First Search
+		auto dfs_vertex_map(std::function<void(T&)> map_func) -> void; // Depth-First-Search
+
+		// Functional Programming (FP) Routines
+
+		// Apply <map> function to all vertices
+		auto vertex_map(std::function<void(T&)> map_func) -> void;
+		// Apply <fold> function to all vertices
+		template <class Res> auto vertex_fold(T& acc, std::function<Res(T)> fold_func) -> void;
+
+		// Apply <map> function to all edges of a given vertex
+		auto edge_map(VertexNode<T, W>* node, std::function<void(W&)> map_func) throw(std::invalid_argument) -> void;
+		auto edge_map(const T& data_to_find, std::function<void(W&)> map_func) throw(std::invalid_argument) -> void;
+
+		// Apply <fold> function to all edges of a given vertex
+		template <class Res> 
+		auto edge_fold(W& acc, VertexNode<T, W>* node, std::function<Res(W)> fold_func) throw(std::invalid_argument) -> void;
+		template <class Res> 
+		auto edge_fold(W& acc, const T& data_to_find, std::function<Res(W)> fold_func) throw(std::invalid_argument) -> void;
+
+		// Search paths (from root to the bottom) using DFS traversal and 
+		// applying a map/fold function to each found path
+		template <class Cont, class Oper>
+		auto dfs_path_fold(Cont& container, std::function<typename Cont::value_type(T)> transform_func) -> void;
+
+		/* Service functions */
 
 		// O(1) | returns vertex node count
 		inline auto size() const -> size_t { return size_; };
 		// O(n) | returns giveb vertex's edge count
-		auto edge_size(VertexNode<T, W>* node) const throw(std::invalid_argument)->size_t;
+		auto edge_size(const VertexNode<T, W>* const node) const throw(std::invalid_argument) -> size_t;
+		auto edge_size(const T& vertex_data) const throw(std::invalid_argument) -> size_t;
+		
 		inline auto empty() -> bool { return begin() == end(); };
+
+		// Returns VertexNode's data
+		auto vertex_data(const VertexNode<T, W>* const node) const throw(std::invalid_argument) -> T;
+
+		// O(n) | clears <is_visited> flag
+		auto clear_visited() -> void;
 
 		// Print functions
 		auto print_graph(std::ostream& stream = std::cout) -> std::ostream&;
 		auto print_edges(VertexNode<T, W>* node, std::ostream& stream = std::cout) -> std::ostream&;
 
+		// O(1) | returns initial vertex
+		auto root() const -> const VertexNode<T, W>* { return head; }
+
 		// Clear data
 		auto clear() throw() -> void;
+
+	private:
+
+		// Find vertex (returns first found node with the given value to search)
+		auto find_vertex(const T& data_to_found) const->VertexNode<T, W>*;
 	};
 
 	template <class T, class W>
@@ -298,14 +394,236 @@ namespace hadt {
 	{
 		clear();
 
-		delete tail_junk;
-		delete edge_tail_junk;
+		if (tail_junk != nullptr)
+			delete tail_junk;
+
+		if (edge_tail_junk != nullptr)
+			delete edge_tail_junk;
 	}
 
 	template <class T, class W>
-	auto graph_list<T, W>::add_vertex(T data) -> VertexNode<T, W>*
+	auto graph_list<T, W>::clear_visited() -> void
 	{
-		auto node = new VertexNode<T, W>(data, false, tail_junk, edge_tail_junk);
+		for (auto vit = begin(); vit != end(); vit++)
+			vit.get_node()->is_visited = false;
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::bfs_vertex_map(std::function<void(T&)> map_func) -> void
+	{
+		using VNode = VertexNode<T, W>*;
+
+		// Breadth-First Traversal
+		clear_visited();
+
+		VNode node;
+		std::deque<VNode> v_list;
+
+		// Push to Back ...
+		v_list.push_back(head);
+		while (!v_list.empty())
+		{
+			// ... and Pull from Front
+			node = v_list.front();
+			v_list.pop_front();
+
+			if (node->is_visited)
+				continue;
+
+			map_func(node->data);
+			node->is_visited = true;
+			for (auto it = edge_begin(node); it != edge_end(); it++)
+				v_list.push_back(it.get_node()->connects_to);
+		}
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::dfs_vertex_map(std::function<void(T&)> map_func) -> void
+	{
+		using VNode = VertexNode<T, W>*;
+
+		// Depth-First Traversal
+		clear_visited();
+
+		VNode node;
+		std::deque<VNode> v_list;
+		std::vector<VNode> v_reverse;
+
+		// Push to Back ...
+		v_list.push_back(head);
+		while (!v_list.empty())
+		{
+			// ... and Pull from Back
+			node = v_list.back();
+			v_list.pop_back();
+
+			if (node->is_visited)
+				continue;
+
+			map_func(node->data);
+			node->is_visited = true;
+			
+			// In order to receive valid graph order (from left to right)
+			// we need to put new nodes in reverse order (due to internal order)
+			v_reverse.clear();
+			for (auto it = edge_begin(node); it != edge_end(); it++)
+				v_reverse.push_back(it.get_node()->connects_to);
+			
+			// Put childs in reverse order (in order that is opposite to what we have in VertexNode)
+			auto it = v_reverse.rbegin();
+			while (it != v_reverse.rend())
+				v_list.push_back(*it++);
+		}
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::vertex_map(std::function<void(T&)> map_func) -> void
+	{
+		for (auto it = begin(); it != end(); it++)
+			map_func(*it);
+	}
+
+	template <class T, class W>
+	template <class Res>
+	auto graph_list<T, W>::vertex_fold(T& acc, std::function<Res(T)> fold_func) -> void
+	{
+		for (auto it = begin(); it != end(); it++)
+			acc += fold_func(*it);
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::edge_map(VertexNode<T, W>* node, std::function<void(W&)> map_func) throw(std::invalid_argument) -> void
+	{
+		if (node == nullptr)
+			throw std::invalid_argument("Vertex node can't be null");
+
+		for (auto it = edge_begin(node); it != edge_end(); it++)
+			map_func(*it);
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::edge_map(const T& data_to_find, std::function<void(W&)> map_func) throw(std::invalid_argument) -> void
+	{
+		auto found = find_vertex(data_to_find);
+		if (found == nullptr)
+			throw std::invalid_argument("Can't find a vertex node with given value");
+
+		edge_map(found, map_func);
+	}
+
+	template <class T, class W>
+	template <class Res>
+	auto graph_list<T, W>::edge_fold(W& acc, VertexNode<T, W>* node, std::function<Res(W)> fold_func) throw(std::invalid_argument) -> void
+	{
+		if (node == nullptr)
+			throw std::invalid_argument("Vertex node can't be null");
+
+		for (auto it = edge_begin(node); it != edge_end(); it++)
+			acc += fold_func(*it);
+	}
+
+	template <class T, class W>
+	template <class Res>
+	auto graph_list<T, W>::edge_fold(W& acc, const T& data_to_find, std::function<Res(W)> fold_func) throw(std::invalid_argument) -> void
+	{
+		auto found = find_vertex(data_to_find);
+		if (found == nullptr)
+			throw std::invalid_argument("Can't find a vertex node with given value");
+
+		edge_fold(acc, found, fold_func);
+	}
+
+	template <class T, class W>
+	auto edge_map(VertexNode<T, W>* node, std::function<void(W&)> map_func) -> void
+	{
+		for (auto it = edge_begin(node); it != VertexNode<T, W>::edge_end(); it++)
+			map_func(*it);
+	}
+
+	template <class T, class W>
+	auto edge_map(const T& data_to_find, std::function<void(W&)> map_func) -> void
+	{
+		auto found = find_vertex(data_to_find);
+		if (found == nullptr)
+			throw std::invalid_argument("Can't find a vertex node with given value");
+
+		for (auto it = edge_begin(found); it != VertexNode<T, W>::edge_end(); it++)
+			map_func(*it);
+	}
+
+	template <class T, class W>
+	template <class Cont, class Oper>
+	auto graph_list<T, W>::dfs_path_fold(Cont& container, std::function<typename Cont::value_type(T)> transform_func) -> void
+	{
+		using ContVal = typename Cont::value_type;
+		using VNode = VertexNode<T, W>*;
+
+		// Depth-First Traversal
+		clear_visited();
+
+		Oper operation;
+
+		// need 'typename' before 'Cont:: value_type' because 'Cont' is a dependent scope
+		ContVal acc_value{};
+		
+		VNode temp{};
+		std::deque<VNode> v_list;
+
+		v_list.push_back(head);
+		while (!v_list.empty())
+		{
+			temp = v_list.back();
+			temp->is_visited = true;
+
+			if (temp->edge_head == edge_tail_junk)
+			{
+				// Store the given path's value
+				for (auto it = v_list.begin(); it != v_list.end(); it++)
+					acc_value = operation(acc_value, transform_func((*it)->data));
+
+				container.push_back(acc_value);
+				acc_value = ContVal{};
+				v_list.pop_back();
+			}
+			else
+			{
+				bool all_visited = true;
+				for (auto it = edge_begin(temp); it != edge_end(); it++)
+				{
+					if (it.get_node()->connects_to->is_visited == false)
+					{
+						v_list.push_back(it.get_node()->connects_to);
+						all_visited = false;
+						break;
+					}
+				}
+
+				// Remove from the list only if all childs are visited
+				if (all_visited)
+				{
+					// Refresh childs of this vertex node before going to a higher level
+					for (auto it = edge_begin(v_list.back()); it != edge_end(); it++)
+						it.get_node()->connects_to->is_visited = false;
+
+					v_list.pop_back();
+				}
+			}
+		}
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::vertex_data(const VertexNode<T, W>* const node) const throw(std::invalid_argument) -> T
+	{
+		if (node == nullptr)
+			throw std::invalid_argument("Vertex node can't be null");
+
+		return node->data;
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::add_vertex(T vertex_data) -> VertexNode<T, W>*
+	{
+		auto node = new VertexNode<T, W>(vertex_data, false, tail_junk, edge_tail_junk);
 
 		// Tail
 		if (tail_junk != tail)
@@ -324,9 +642,16 @@ namespace hadt {
 	}
 
 	template <class T, class W>
-	auto graph_list<T, W>::add_edge(W weight, VertexNode<T, W>* from, VertexNode<T, W>* to) -> void
+	auto graph_list<T, W>::add_vertices(std::initializer_list<T> vertices) -> void
 	{
-		EdgeNode<T, W>* node = new EdgeNode<T, W>(weight, to, edge_tail_junk);
+		for (auto &v : vertices)
+			add_vertex(v);
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::add_edge(W weight, VertexNode<T, W>* const from, VertexNode<T, W>* const to) -> void
+	{
+		auto node = new EdgeNode<T, W>(weight, to, edge_tail_junk);
 
 		if (from->edge_head == edge_tail_junk)
 			from->edge_head = node;
@@ -342,6 +667,36 @@ namespace hadt {
 		}
 
 		node->next = edge_tail_junk;
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::add_edge(W weight, T from, T to) throw(std::invalid_argument) -> void
+	{
+		auto first = find_vertex(from);
+		auto second = find_vertex(to);
+
+		if (first == nullptr || second == nullptr)
+			throw std::invalid_argument("Given values are invalid. Can't find a vertex");
+
+		add_edge(weight, first, second);
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::add_edges(std::initializer_list<std::tuple<W, T, T>> edges) throw(std::invalid_argument) -> void
+	{
+		for (auto &e : edges)
+			add_edge(std::get<0>(e), std::get<1>(e), std::get<2>(e));
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::find_vertex(const T& data_to_found) const -> VertexNode<T, W>*
+	{
+		for (auto it = begin(); it != end(); it++)
+			if (*it == data_to_found)
+				return it.get_node();
+
+		// Means "not found"
+		return nullptr;
 	}
 
 	template <class T, class W>
@@ -447,7 +802,7 @@ namespace hadt {
 	}
 
 	template <class T, class W>
-	auto graph_list<T, W>::edge_size(VertexNode<T, W>* node) const throw(std::invalid_argument) -> size_t
+	auto graph_list<T, W>::edge_size(const VertexNode<T, W>* const node) const throw(std::invalid_argument) -> size_t
 	{
 		if (node == nullptr)
 			throw std::invalid_argument("Vertex node can't be null");
@@ -465,6 +820,16 @@ namespace hadt {
 		}
 
 		return edge_count;
+	}
+
+	template <class T, class W>
+	auto graph_list<T, W>::edge_size(const T& vertex_data) const throw(std::invalid_argument) -> size_t
+	{
+		auto found = find_vertex(vertex_data);
+		if (found == nullptr)
+			throw std::invalid_argument("Can't find a vertex node with given value");
+		
+		return edge_size(found);
 	}
 
 	template <class T, class W>
@@ -535,27 +900,27 @@ namespace hadt {
 		}
 		catch (...)
 		{
-			terminate();
+			std::terminate();
 		}
 	}
 
 	template <class T, class W>
-	auto graph_list<T, W>::fill_vertex_with(std::initializer_list<T> values) -> void
+	auto graph_list<T, W>::fill_vertices(std::initializer_list<T> vertices) -> void
 	{
 		clear();
 
-		for (auto &v : values)
+		for (auto &v : vertices)
 			add_vertex(v);
 	}
 
 	template <class T, class W>
-	template <class Iter, class Enable = std::enable_if<
+	template <class Iter, class Enable = typename std::enable_if<
 		(std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::forward_iterator_tag>::value ||
 		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::bidirectional_iterator_tag>::value ||
 		std::is_same<typename std::iterator_traits<Iter>::iterator_category, std::random_access_iterator_tag>::value) &&
 		std::is_same<typename std::iterator_traits<Iter>::value_type, T>::value
 	>::type>
-	auto graph_list<T, W>::fill_vertex_with(const Iter& _begin, const Iter& _end) -> void
+	auto graph_list<T, W>::fill_vertices(const Iter& _begin, const Iter& _end) -> void
 	{
 		clear();
 

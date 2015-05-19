@@ -70,16 +70,16 @@ TEST_CASE("List Creation: ", "[Methods][Construction][SLL][DLL][GAL]")
 
 		REQUIRE(lst.begin() == lst.end());
 
-		lst.fill_vertex_with({ 1, 3, 5, 7, 11, 13 });
+		lst.fill_vertices({ 1, 3, 5, 7, 11, 13 });
 		REQUIRE(lst.size() == 6);
 
 		lst.clear();
 		REQUIRE(lst.begin() == lst.end());
 
-		lst.fill_vertex_with(fill_vector.begin(), fill_vector.end());
+		lst.fill_vertices(fill_vector.begin(), fill_vector.end());
 		REQUIRE(lst.size() == 9);
 
-		lst.fill_vertex_with(fill_list.begin(), fill_list.end());
+		lst.fill_vertices(fill_list.begin(), fill_list.end());
 		REQUIRE(lst.size() == 9);
 	}
 }
@@ -88,21 +88,43 @@ TEST_CASE("Vertexes/Edges Creation", "[Methods][Construction][GAL]")
 {
 	graph_list<char, int> glist;
 
-	auto node_a = glist.add_vertex('A');
-	auto node_c = glist.add_vertex('C');
-	auto node_e = glist.add_vertex('E');
-	auto node_h = glist.add_vertex('H');
-	auto node_w = glist.add_vertex('W');
-	REQUIRE(glist.size() == 5);
-	REQUIRE(glist.edge_size(node_a) == 0);
-	REQUIRE(glist.edge_size(node_h) == 0);
+	SECTION("... one-by-one")
+	{
+		auto node_a = glist.add_vertex('A');
+		auto node_c = glist.add_vertex('C');
+		auto node_e = glist.add_vertex('E');
+		auto node_h = glist.add_vertex('H');
+		auto node_w = glist.add_vertex('W');
+		REQUIRE(glist.size() == 5);
+		REQUIRE(glist.edge_size(node_a) == 0);
+		REQUIRE(glist.edge_size(node_h) == 0);
 
-	glist.add_edge(0, node_a, node_e);
-	glist.add_edge(0, node_a, node_w);
-	glist.add_edge(0, node_c, node_h);
-	REQUIRE(glist.edge_size(node_a) == 2);
-	REQUIRE(glist.edge_size(node_c) == 1);
-	REQUIRE(glist.edge_size(node_w) == 0);
+		glist.add_edge(0, node_a, node_e);
+		glist.add_edge(0, node_a, node_w);
+		glist.add_edge(0, node_c, node_h);
+		REQUIRE(glist.edge_size(node_a) == 2);
+		REQUIRE(glist.edge_size(node_c) == 1);
+		REQUIRE(glist.edge_size(node_w) == 0);
+	}
+	
+	SECTION("... by bulk update")
+	{
+		glist.add_vertices({ 'A', 'C', 'E', 'H', 'W' });
+		REQUIRE(glist.size() == 5);
+		REQUIRE(glist.edge_size('A') == 0);
+		REQUIRE(glist.edge_size('H') == 0);
+
+		glist.add_edges(
+		{ 
+			std::make_tuple(0, 'A', 'E'), 
+			std::make_tuple(0, 'A', 'W'),
+			std::make_tuple(0, 'C', 'H')
+		});
+
+		REQUIRE(glist.edge_size('A') == 2);
+		REQUIRE(glist.edge_size('C') == 1);
+		REQUIRE(glist.edge_size('W') == 0);
+	}
 }
 
 TEST_CASE("List Append / Prepand", "[Methods][Construction][SLL][DLL]")
@@ -802,4 +824,241 @@ TEST_CASE("Removing / Adding vertexes / edges", "[Methods][GAL]")
 
 	glist.clear();
 	REQUIRE(glist.size() == 0);
+}
+
+TEST_CASE("Graph List Traversal", "[Methods][BFS][DFS][GAL]")
+{
+	/*	  ______A______
+		  |     |     |
+		  B     C     D
+		  |     |     |
+		 _E_    I     H
+		|   |   |
+		F   G   J
+	*/
+
+	graph_list<std::string, int> glist;
+	glist.add_vertices(
+	{ 
+		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J" 
+	});
+
+	glist.add_edges(
+	{
+		std::make_tuple(0, "A", "B"),
+		std::make_tuple(0, "A", "C"),
+		std::make_tuple(0, "A", "D"),
+		std::make_tuple(0, "B", "E"),
+		std::make_tuple(0, "C", "I"),
+		std::make_tuple(0, "D", "H"),
+		std::make_tuple(0, "E", "F"),
+		std::make_tuple(0, "E", "G"),
+		std::make_tuple(0, "I", "J"),
+	});
+
+	std::string result;
+	std::ostringstream stream;
+
+	auto lambda = [&stream](std::string& next) {
+		stream << next << "-";
+	};
+
+	glist.bfs_vertex_map(lambda);
+	result = stream.str();
+	REQUIRE(result.substr(0, result.size() - 1) == "A-B-C-D-E-I-H-F-G-J");
+
+	stream.str("");
+	stream.clear();
+	glist.dfs_vertex_map(lambda);
+
+	result = stream.str();
+	REQUIRE(result.substr(0, result.size() - 1) == "A-B-E-F-G-C-I-J-D-H");
+
+	auto it = 0;
+}
+
+TEST_CASE("Vertices & Edges map & fold", "[Methods][BFS][DFS][GAL]")
+{
+	/*	  ______A______
+		  |     |     |
+		  B     C     D
+		  |     |     |
+		 _E_    I     H
+		|   |   |
+	    F   G   J
+	*/
+
+	std::string result;
+	std::ostringstream stream;
+	
+	graph_list<std::string, int> glist;
+
+	glist.add_vertices(
+	{
+		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"
+	});
+
+	using hadt::make_edge;
+	glist.add_edges(
+	{
+		make_edge(1, "A", "B"),
+		make_edge(2, "A", "C"),
+		make_edge(3, "A", "D"),
+		make_edge(4, "B", "E"),
+		make_edge(5, "C", "I"),
+		make_edge(6, "D", "H"),
+		make_edge(7, "E", "F"),
+		make_edge(8, "E", "G"),
+		make_edge(9, "I", "J")
+	});
+
+	auto func_print = [&stream](std::string& next) {
+		stream << next << "-";
+	};
+
+	glist.bfs_vertex_map(func_print);
+	result = stream.str();
+	REQUIRE(result.substr(0, result.size() - 1) == "A-B-C-D-E-I-H-F-G-J");
+
+	SECTION("... using vertex_map")
+	{
+		glist.vertex_map([](std::string& next){
+			next = "[" + next + "]";
+		});
+
+		stream.str("");
+		stream.clear();
+		glist.bfs_vertex_map(func_print);
+		result = stream.str();
+		REQUIRE(result.substr(0, result.size() - 1) == "[A]-[B]-[C]-[D]-[E]-[I]-[H]-[F]-[G]-[J]");
+	}
+
+	SECTION("... using vertex_fold")
+	{
+		std::string acc{};
+		glist.vertex_fold<std::string>(acc, [](std::string& next){
+			return next + ";";
+		});
+
+		REQUIRE(acc.substr(0, acc.size() - 1) == "A;B;C;D;E;F;G;H;I;J");
+	}
+
+	SECTION("... using edge_map & edge_fold")
+	{
+		int acc{};
+		auto sum_lambda = [](int next) { return next; };
+
+		// Sum of all weight of edges of a given vertex
+		glist.edge_fold<int>(acc, "A", sum_lambda);
+		REQUIRE(acc == 6);
+
+		glist.edge_map("A", [](int& next){ next++; });
+
+		acc = 0;
+		glist.edge_fold<int>(acc, "A", sum_lambda);
+		REQUIRE(acc == 9);
+	}
+}
+
+TEST_CASE("Iterate over graph paths", "[Methods][DFS][GAL]")
+{
+	std::string result;
+	std::ostringstream stream;
+
+	/*	  ______A______
+		  |     |     |
+		  B     C     D
+		  |     |     |
+		 _E_    I     H
+		|   |   |
+		F   G   J
+	*/
+	graph_list<std::string, int> str_list;
+	
+	/*
+		        ___3___
+			___7___ ___4___
+		  __2__ ___4___ ___6__
+          8    5      9     3
+	*/
+	graph_list<int, int> int_list;
+
+	str_list.add_vertices(
+	{
+		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"
+	});
+
+	// 1-lvl
+	auto lvl_1 = int_list.add_vertex(3);
+	// 2-lvl
+	auto lvl_2_1 = int_list.add_vertex(7);
+	auto lvl_2_2 = int_list.add_vertex(4);
+	// 3-lvl
+	auto lvl_3_1 = int_list.add_vertex(2);
+	auto lvl_3_2 = int_list.add_vertex(4);
+	auto lvl_3_3 = int_list.add_vertex(6);
+	// 4-lvl
+	auto lvl_4_1 = int_list.add_vertex(8);
+	auto lvl_4_2 = int_list.add_vertex(5);
+	auto lvl_4_3 = int_list.add_vertex(9);
+	auto lvl_4_4 = int_list.add_vertex(3);
+
+	using hadt::make_edge;
+	str_list.add_edges(
+	{
+		make_edge(1, "A", "B"),
+		make_edge(2, "A", "C"),
+		make_edge(3, "A", "D"),
+		make_edge(4, "B", "E"),
+		make_edge(5, "C", "I"),
+		make_edge(6, "D", "H"),
+		make_edge(7, "E", "F"),
+		make_edge(8, "E", "G"),
+		make_edge(9, "I", "J")
+	});
+
+	// lvl-1
+	int_list.add_edge(0, lvl_1, lvl_2_1);
+	int_list.add_edge(0, lvl_1, lvl_2_2);
+
+	// lvl-2
+	int_list.add_edge(0, lvl_2_1, lvl_3_1);
+	int_list.add_edge(0, lvl_2_1, lvl_3_2);
+	int_list.add_edge(0, lvl_2_2, lvl_3_2);
+	int_list.add_edge(0, lvl_2_2, lvl_3_3);
+
+	// lvl-3
+	int_list.add_edge(0, lvl_3_1, lvl_4_1);
+	int_list.add_edge(0, lvl_3_1, lvl_4_2);
+	int_list.add_edge(0, lvl_3_2, lvl_4_2);
+	int_list.add_edge(0, lvl_3_2, lvl_4_3);
+	int_list.add_edge(0, lvl_3_3, lvl_4_3);
+	int_list.add_edge(0, lvl_3_3, lvl_4_4);
+	
+	using std::plus;
+	using std::minus;
+	using std::vector;
+	using std::string;
+
+	vector<string> str_arr{};
+	str_list.dfs_path_fold<vector<string>, plus<string>>(str_arr, [](string next){
+		return "[" + next + "]";
+	});
+
+	REQUIRE(str_arr[0] == "[A][B][E][F]");
+	REQUIRE(str_arr[1] == "[A][B][E][G]");
+	REQUIRE(str_arr[2] == "[A][C][I][J]");
+	REQUIRE(str_arr[3] == "[A][D][H]");
+
+	vector<int> int_arr{};
+	int_list.dfs_path_fold<vector<int>, plus<int>>(int_arr, [](int next){
+		return next;
+	});
+
+	int_arr.clear();
+	int_list.dfs_path_fold<vector<int>, plus<int>>(int_arr, [](int next){
+		return next;
+	});
+
+	auto it = 0;
 }
