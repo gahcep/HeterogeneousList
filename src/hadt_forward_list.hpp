@@ -18,73 +18,30 @@
 // std::initializer_list
 #include <initializer_list>
 
+#include "hadt_common.hpp"
 
 namespace hadt {
 
 	template <class T>
 	class forward_list
 	{
-
 	protected:
-
-		/* Internal class : Node */
-
-		class HNode
-		{
-		public:
-			T data;
-
-			HNode *next;
-			HNode *prev;
-
-			explicit HNode(T d) :next{ nullptr }, prev{ nullptr } { data = d; };
-			HNode(T d, HNode *n, HNode *p) : next{ n }, prev{ p } { data = d; };
-
-			// copy ctor; move ctor; copy assign; move assign
-			HNode(const HNode& node) = delete;
-			HNode& operator=(const HNode& node) = delete;
-			HNode(HNode&& node) = delete;
-			HNode& operator=(HNode&& node) = delete;
-		};
-
-		/* Internal class : [Const] Iterator */
 
 		template <bool IsConst = false>
 		class list_iterator : public std::iterator <std::forward_iterator_tag, T>
 		{
-			template <bool is_const>
-			struct iterator_base_type {};
-
-			// Specialization for iterator
-			template <>
-			struct iterator_base_type<false>
-			{
-				typedef T& iterator_reference;
-				typedef T* iterator_pointer;
-				typedef HNode* iterator_value_type_ptr;
-			};
-
-			// Specialization for const_iterator
-			template <>
-			struct iterator_base_type<true>
-			{
-				typedef const T& iterator_reference;
-				typedef const T* iterator_pointer;
-				typedef const HNode* iterator_value_type_ptr;
-			};
-
 		public:
 
 			typedef T value_type;
 			// T& / const T&
-			typedef typename iterator_base_type<IsConst>::iterator_reference reference;
+			typedef typename hadt::node_iterator_base<T, IsConst>::iterator_reference reference;
 			// T* / const T*
-			typedef typename iterator_base_type<IsConst>::iterator_pointer pointer;
+			typedef typename hadt::node_iterator_base<T, IsConst>::iterator_pointer pointer;
 			typedef std::ptrdiff_t difference_type;
 			typedef std::forward_iterator_tag iterator_category;
 
 			list_iterator() : ptr_{ nullptr } {};
-			explicit list_iterator(HNode *ptr) : ptr_(ptr) {};
+			explicit list_iterator(HNode<T> *ptr) : ptr_(ptr) {};
 
 			list_iterator(const list_iterator<IsConst>& it) : ptr_(it.ptr_) {};
 			list_iterator(const list_iterator<IsConst>&& it) : ptr_(std::move(it.ptr_)) {};
@@ -99,7 +56,7 @@ namespace hadt {
 			pointer operator->() const { return &(ptr_->data); } // { return &(**this) }
 
 			auto get() const -> reference { return &(ptr_->data); }
-			auto get_node() const -> HNode* { return ptr_; }
+			auto get_node() const -> HNode<T>* { return ptr_; }
 
 			auto operator++() -> list_iterator<IsConst>&
 			{
@@ -118,12 +75,12 @@ namespace hadt {
 
 		private:
 
-			// HNode * / const HNode *
-			typename iterator_base_type<IsConst>::iterator_value_type_ptr ptr_;
+			// HNode<T> * / const HNode<T> *
+			typename hadt::node_iterator_base<T, IsConst>::iterator_value_type_ptr ptr_;
 		};
 
-		HNode *head, *tail;
-		HNode *tail_junk;
+		HNode<T> *head, *tail;
+		HNode<T> *tail_junk;
 
 		size_t size_;
 
@@ -238,17 +195,17 @@ namespace hadt {
 		virtual auto _remove_at(size_t idx) throw(std::out_of_range) -> T;
 
 		// Return HNode at given position
-		auto _node_at(size_t idx) throw(std::out_of_range) -> HNode*;
+		auto _node_at(size_t idx) throw(std::out_of_range) -> HNode<T>*;
 	};
 
 
 	template <class T>
 	auto forward_list<T>::_push_front(T&& data) throw() -> void
 	{
-		HNode *node = new HNode(std::move(data));
+		HNode<T> *node = new HNode<T>(std::move(data));
 
 		if (nullptr == tail_junk)
-			tail_junk = new HNode(T{ 55 }, nullptr, nullptr);
+			tail_junk = new HNode<T>(T{ 55 }, nullptr, nullptr);
 
 		// Head
 		if (nullptr != head)
@@ -281,10 +238,10 @@ namespace hadt {
 	template <class T>
 	auto forward_list<T>::_push_back(T&& data) throw() -> void
 	{
-		HNode *node = new HNode(std::move(data));
+		HNode<T> *node = new HNode<T>(std::move(data));
 
 		if (tail_junk == nullptr)
-			tail_junk = new HNode(T{}, nullptr, nullptr);
+			tail_junk = new HNode<T>(T{}, nullptr, nullptr);
 
 		// Tail
 		if (nullptr != tail)
@@ -377,7 +334,7 @@ namespace hadt {
 	}
 
 	template <class T>
-	auto forward_list<T>::_node_at(size_t idx) throw(std::out_of_range) -> HNode*
+	auto forward_list<T>::_node_at(size_t idx) throw(std::out_of_range) -> HNode<T>*
 	{
 		if (idx >= size())
 			throw std::out_of_range("_node_at()");
@@ -393,8 +350,8 @@ namespace hadt {
 	template <class T>
 	auto forward_list<T>::clear() throw() -> void
 	{
-		HNode *tmp = head;
-		HNode *it = head;
+		HNode<T> *tmp = head;
+		HNode<T> *it = head;
 
 		try
 		{
@@ -437,7 +394,7 @@ namespace hadt {
 			}
 			else
 			{
-				HNode * tmp = head;
+				HNode<T> * tmp = head;
 				head = head->next;
 
 				delete tmp;
@@ -457,10 +414,10 @@ namespace hadt {
 			}
 			else
 			{
-				HNode * tmp = tail;
+				HNode<T> * tmp = tail;
 
 				// O(n)
-				HNode * prev = _node_at(size() - 2);
+				HNode<T> * prev = _node_at(size() - 2);
 				prev->next = tail_junk;
 				tail = prev;
 
@@ -473,9 +430,9 @@ namespace hadt {
 		// In the middle
 		else
 		{
-			HNode * prev = _node_at(idx - 1);
-			HNode * curr = prev->next;
-			HNode * next = curr->next;
+			HNode<T> * prev = _node_at(idx - 1);
+			HNode<T> * curr = prev->next;
+			HNode<T> * next = curr->next;
 
 			val = curr->data;
 
@@ -606,18 +563,16 @@ namespace hadt {
 	{
 		if (empty()) return;
 
-		HNode * tmp{};
-		HNode * curr = head;
-		HNode * succ = curr->next;
+		HNode<T> * tmp{};
+		HNode<T> * curr = head;
+		HNode<T> * succ = curr->next;
 
 		curr->next = tail_junk;
 		tail = curr;
 		while (succ != tail_junk)
 		{
 			tmp = succ->next;
-
 			succ->next = curr;
-
 			curr = succ;
 			succ = tmp;
 		}

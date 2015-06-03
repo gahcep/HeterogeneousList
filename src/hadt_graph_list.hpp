@@ -27,99 +27,10 @@
 // std::tuple, std::get
 #include <tuple>
 
+#include "hadt_common.hpp"
+
+
 namespace hadt {
-
-	/* Helper functions */
-	template <class T, class W>
-	static auto make_edge(W a1, T a2, T a3) -> std::tuple<W, T, T> 
-	{ 
-		return std::make_tuple(a1, a2, a3); 
-	};
-
-	/* External class : Vertex Data */
-
-	template <class T, class W>
-	class EdgeNode;
-
-	template <class T, class W>
-	class VertexNode
-	{
-	public:
-		T data;
-		bool is_visited;
-		VertexNode *next;
-		EdgeNode<T, W> *edge_head;
-
-		explicit VertexNode(T d)
-			: is_visited{ false }, next{ nullptr }, edge_head{ nullptr } 
-		{
-			data = d;
-		};
-		VertexNode(T d, bool vis, VertexNode* vn, EdgeNode<T, W>* en)
-			: is_visited{ vis }, next{ vn }, edge_head{ en } {
-			data = d;
-		};
-	};
-
-	/* External class : Edge Data */
-
-	template <class T, class W>
-	class EdgeNode
-	{
-	public:
-		W weight;
-		VertexNode<T, W>* connects_to;
-		EdgeNode* next;
-
-		explicit EdgeNode(W w)
-			: weight{ w }, connects_to{ nullptr }, next{ nullptr } {};
-		EdgeNode(W w, VertexNode<T, W>* vn, EdgeNode* en)
-			: weight{ w }, connects_to{ vn }, next{ en } {};
-	};
-
-	/* Vertex & Edge Iterators */
-
-	template <class T, class W, bool is_const>
-	struct vertex_iterator_base {};
-
-	template <class T, class W, bool is_const>
-	struct edge_iterator_base {};
-
-	// Specialization for iterator
-	template <class T, class W>
-	struct vertex_iterator_base<T, W, false>
-	{
-		typedef T& iterator_reference;
-		typedef T* iterator_pointer;
-		typedef VertexNode<T, W>* iterator_value_type_ptr;
-	};
-
-	// Specialization for const_iterator
-	template <class T, class W>
-	struct vertex_iterator_base<T, W, true>
-	{
-		typedef const T& iterator_reference;
-		typedef const T* iterator_pointer;
-		typedef const VertexNode<T, W>* iterator_value_type_ptr;
-	};
-
-	// Specialization for iterator
-	template <class T, class W>
-	struct edge_iterator_base<T, W, false>
-	{
-		typedef W& iterator_reference;
-		typedef W* iterator_pointer;
-		typedef EdgeNode<T, W>* iterator_value_type_ptr;
-	};
-
-	// Specialization for const_iterator
-	template <class T, class W>
-	struct edge_iterator_base<T, W, true>
-	{
-		typedef const W& iterator_reference;
-		typedef const W* iterator_pointer;
-		typedef const EdgeNode<T, W>* iterator_value_type_ptr;
-	};
 
 	template <class T, class W>
 	class graph_list
@@ -285,6 +196,8 @@ namespace hadt {
 		graph_list(graph_list&& node) = delete;
 		graph_list& operator=(graph_list&& node) = delete;
 
+		// TODO: add next() function to iterators ?
+
 		vertex_iterator begin() const { return vertex_iterator(head); }
 		vertex_iterator end() const { return vertex_iterator(tail_junk); }
 
@@ -323,6 +236,7 @@ namespace hadt {
 		auto fill_vertices(const Iter& _begin, const Iter& _end) -> void;
 
 		// Graph Traversal
+		// TODO: make difference between DFS/BFS and Preorder/Inorder/Postorder traversal
 		auto bfs_vertex_map(std::function<void(T&)> map_func) -> void; // Breadth-First Search
 		auto dfs_vertex_map(std::function<void(T&)> map_func) -> void; // Depth-First-Search
 
@@ -363,6 +277,8 @@ namespace hadt {
 
 		// O(n) | clears <is_visited> flag
 		auto clear_visited() -> void;
+
+		// TODO: add IsReachable function
 
 		// Print functions
 		auto print_graph(std::ostream& stream = std::cout) -> std::ostream&;
